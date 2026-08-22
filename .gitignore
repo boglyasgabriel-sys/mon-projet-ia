@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+.spotify_token_cache
 node_modules/
 __pycache__/
 *.pyc
