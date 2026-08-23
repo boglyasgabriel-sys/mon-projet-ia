@@ -35,3 +35,16 @@ def load_spotify_config() -> SpotifyConfig:
         client_secret=_require_env("SPOTIPY_CLIENT_SECRET"),
         redirect_uri=_require_env("SPOTIPY_REDIRECT_URI"),
     )
+
+
+@dataclass(frozen=True)
+class SupabaseConfig:
+    url: str
+    key: str
+
+
+def load_supabase_config() -> SupabaseConfig:
+    return SupabaseConfig(
+        url=_require_env("SUPABASE_URL"),
+        key=_require_env("SUPABASE_SERVICE_KEY"),
+    )

@@ -13,6 +13,11 @@ from cd_compiler.models import Playlist, Track
 
 PLAYLIST_URL_PATTERN = re.compile(r"open\.spotify\.com/playlist/([a-zA-Z0-9]+)")
 
+# Depuis la migration Spotify de février 2026, le champ contenant le morceau
+# dans chaque entrée de playlist s'appelle "item" et non plus "track".
+# On garde les deux noms possibles pour ne pas re-casser si ça change encore.
+TRACK_FIELD_CANDIDATES = ("item", "track")
+
 
 def extract_playlist_id(playlist_url: str) -> str:
     """Ex: https://open.spotify.com/playlist/37i9dQ...?si=xxx -> 37i9dQ..."""
@@ -20,6 +25,14 @@ def extract_playlist_id(playlist_url: str) -> str:
     if not match:
         raise ValueError(f"URL de playlist Spotify invalide : {playlist_url}")
     return match.group(1)
+
+
+def _extract_track_payload(item: dict) -> dict | None:
+    for field_name in TRACK_FIELD_CANDIDATES:
+        payload = item.get(field_name)
+        if payload is not None:
+            return payload
+    return None
 
 
 class SpotifyPlaylistClient:
@@ -30,7 +43,7 @@ class SpotifyPlaylistClient:
             client_secret=config.client_secret,
             redirect_uri=config.redirect_uri,
             scope=config.scope,
-            cache_path=".spotify_token_cache",  # évite de se reconnecter à chaque lancement
+            cache_path=".spotify_token_cache",
         )
         self._sp = spotipy.Spotify(auth_manager=auth_manager)
 
@@ -39,22 +52,16 @@ class SpotifyPlaylistClient:
         meta = self._sp.playlist(playlist_id, fields="id,name,owner.display_name")
 
         tracks: list[Track] = []
-        offset, limit = 0, 100  # taille de page max de l'API
+        offset, limit = 0, 100
 
         while True:
-            page = self._sp.playlist_items(
-            playlist_id,
-            offset=offset,
-            limit=limit,
-            )
+            page = self._sp.playlist_items(playlist_id, offset=offset, limit=limit)
             items = page["items"]
-            #print("DEBUG - nombre d'items :", len(items))
-            #print("DEBUG - page :", page)
             if not items:
                 break
 
             for i, item in enumerate(items):
-                t = item.get("item")
+                t = _extract_track_payload(item)
                 if t is None:
                     continue  # morceau supprimé/indisponible : on l'ignore proprement
                 tracks.append(Track(
