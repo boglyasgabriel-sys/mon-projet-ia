@@ -67,3 +67,23 @@ def run_pipeline(playlist_url: str) -> list[TrackResult]:
         results.append(result)
 
     return results
+
+
+
+
+
+def run_pipeline_stream(playlist_url: str):
+    """
+    Version 'générateur' du pipeline : renvoie les résultats morceau par
+    morceau au fur et à mesure, plutôt que tout d'un coup à la fin.
+    Utilisée par l'interface graphique pour afficher une progression en direct.
+    """
+    spotify_client = SpotifyPlaylistClient()
+    storage = SupabaseStorage()
+
+    playlist: Playlist = spotify_client.get_playlist(playlist_url)
+    yield ("playlist_loaded", playlist, None)
+
+    for track in playlist.tracks:
+        result = process_track(track, storage, playlist.spotify_id)
+        yield ("track_processed", playlist, result)
