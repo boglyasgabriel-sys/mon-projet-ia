@@ -22,11 +22,7 @@ class TrackResult:
     local_filename: str | None = None
     error_message: str | None = None
 
-
 def process_track(track: Track, storage: SupabaseStorage, playlist_id: str) -> TrackResult:
-    if storage.already_downloaded(playlist_id, track.position):
-        return TrackResult(track=track, status="skipped")
-
     try:
         query = f"{track.primary_artist} {track.title}"
         candidates = search_youtube(query)
@@ -52,6 +48,7 @@ def process_track(track: Track, storage: SupabaseStorage, playlist_id: str) -> T
     return result
 
 
+
 def run_pipeline(playlist_url: str) -> list[TrackResult]:
     spotify_client = SpotifyPlaylistClient()
     storage = SupabaseStorage()
@@ -69,15 +66,7 @@ def run_pipeline(playlist_url: str) -> list[TrackResult]:
     return results
 
 
-
-
-
 def run_pipeline_stream(playlist_url: str):
-    """
-    Version 'générateur' du pipeline : renvoie les résultats morceau par
-    morceau au fur et à mesure, plutôt que tout d'un coup à la fin.
-    Utilisée par l'interface graphique pour afficher une progression en direct.
-    """
     spotify_client = SpotifyPlaylistClient()
     storage = SupabaseStorage()
 
